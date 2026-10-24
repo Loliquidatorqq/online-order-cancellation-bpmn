@@ -1,0 +1,366 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_OrderCancellation" targetNamespace="https://github.com/Loliquidatorqq/online-order-cancellation-bpmn" exporter="Portfolio BPMN reconstruction" exporterVersion="1.0">
+  <bpmn:message id="msgCancellation" name="Запрос на отмену заказа"/>
+  <bpmn:message id="msgDecline" name="Отказ в отмене"/>
+  <bpmn:message id="msgRefundRequest" name="Запрос на возврат средств"/>
+  <bpmn:message id="msgRefundApproved" name="Подтверждение возврата"/>
+  <bpmn:message id="msgApproved" name="Подтверждение отмены и возврата"/>
+  <bpmn:collaboration id="Collaboration_OnlineOrderCancellation">
+    <bpmn:participant id="Participant_Customer" name="Клиент" processRef="Process_Customer"/>
+    <bpmn:participant id="Participant_Store" name="Интернет-магазин" processRef="Process_Store"/>
+    <bpmn:participant id="Participant_Payment" name="Платёжный сервис" processRef="Process_Payment"/>
+    <bpmn:messageFlow id="Msg_Cancel" sourceRef="C_Send" targetRef="S_Start" messageRef="msgCancellation"/>
+    <bpmn:messageFlow id="Msg_Decline" sourceRef="S_Decline" targetRef="C_Decline" messageRef="msgDecline"/>
+    <bpmn:messageFlow id="Msg_RefundRequest" sourceRef="S_RefundRequest" targetRef="P_Start" messageRef="msgRefundRequest"/>
+    <bpmn:messageFlow id="Msg_RefundApproved" sourceRef="P_Confirm" targetRef="S_RefundConfirm" messageRef="msgRefundApproved"/>
+    <bpmn:messageFlow id="Msg_Approved" sourceRef="S_Notify" targetRef="C_Approved" messageRef="msgApproved"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Customer" isExecutable="false" name="Клиент">
+    <bpmn:startEvent id="C_Start" name="Нужно отменить заказ">
+      <bpmn:outgoing>Flow_C_Start__C_Send</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sendTask id="C_Send" name="Отправить запрос на отмену">
+      <bpmn:incoming>Flow_C_Start__C_Send</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Send__C_Wait</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:eventBasedGateway id="C_Wait" name="Ожидать ответ">
+      <bpmn:incoming>Flow_C_Send__C_Wait</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Wait__C_Decline</bpmn:outgoing>
+      <bpmn:outgoing>Flow_C_Wait__C_Approved</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:intermediateCatchEvent id="C_Decline" name="Получено: отмена невозможна">
+      <bpmn:messageEventDefinition id="Med_C_Decline" messageRef="msgDecline"/>
+      <bpmn:incoming>Flow_C_Wait__C_Decline</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Decline__C_EndDecline</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="C_EndDecline" name="Отмена отклонена">
+      <bpmn:incoming>Flow_C_Decline__C_EndDecline</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateCatchEvent id="C_Approved" name="Получено: заказ отменён, возврат оформлен">
+      <bpmn:messageEventDefinition id="Med_C_Approved" messageRef="msgApproved"/>
+      <bpmn:incoming>Flow_C_Wait__C_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Approved__C_EndApproved</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="C_EndApproved" name="Запрос выполнен">
+      <bpmn:incoming>Flow_C_Approved__C_EndApproved</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_C_Start__C_Send" sourceRef="C_Start" targetRef="C_Send"/>
+    <bpmn:sequenceFlow id="Flow_C_Send__C_Wait" sourceRef="C_Send" targetRef="C_Wait"/>
+    <bpmn:sequenceFlow id="Flow_C_Wait__C_Decline" sourceRef="C_Wait" targetRef="C_Decline"/>
+    <bpmn:sequenceFlow id="Flow_C_Wait__C_Approved" sourceRef="C_Wait" targetRef="C_Approved"/>
+    <bpmn:sequenceFlow id="Flow_C_Decline__C_EndDecline" sourceRef="C_Decline" targetRef="C_EndDecline"/>
+    <bpmn:sequenceFlow id="Flow_C_Approved__C_EndApproved" sourceRef="C_Approved" targetRef="C_EndApproved"/>
+  </bpmn:process>
+  <bpmn:process id="Process_Store" isExecutable="false" name="Интернет-магазин">
+    <bpmn:startEvent id="S_Start" name="Получен запрос на отмену">
+      <bpmn:messageEventDefinition id="Med_S_Start" messageRef="msgCancellation"/>
+      <bpmn:outgoing>Flow_S_Start__S_Receive</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="S_Receive" name="Получить запрос на отмену">
+      <bpmn:incoming>Flow_S_Start__S_Receive</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Receive__S_Check</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="S_Check" name="Проверить статус заказа">
+      <bpmn:incoming>Flow_S_Receive__S_Check</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Check__S_Decide</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="S_Decide" name="Заказ можно отменить?">
+      <bpmn:incoming>Flow_S_Check__S_Decide</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Decide__S_Decline</bpmn:outgoing>
+      <bpmn:outgoing>Flow_S_Decide__S_Cancel</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="S_Decline" name="Сообщить клиенту об отказе">
+      <bpmn:incoming>Flow_S_Decide__S_Decline</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Decline__S_EndDecline</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="S_EndDecline" name="Отмена отклонена">
+      <bpmn:incoming>Flow_S_Decline__S_EndDecline</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="S_Cancel" name="Отменить заказ в системе">
+      <bpmn:incoming>Flow_S_Decide__S_Cancel</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Cancel__S_RefundRequest</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="S_RefundRequest" name="Сформировать запрос на возврат">
+      <bpmn:incoming>Flow_S_Cancel__S_RefundRequest</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_RefundRequest__S_RefundConfirm</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:intermediateCatchEvent id="S_RefundConfirm" name="Подтверждение возврата">
+      <bpmn:messageEventDefinition id="Med_S_RefundConfirm" messageRef="msgRefundApproved"/>
+      <bpmn:incoming>Flow_S_RefundRequest__S_RefundConfirm</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_RefundConfirm__S_Confirm</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="S_Confirm" name="Подтвердить отмену заказа">
+      <bpmn:incoming>Flow_S_RefundConfirm__S_Confirm</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Confirm__S_Notify</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sendTask id="S_Notify" name="Уведомить клиента об отмене и возврате">
+      <bpmn:incoming>Flow_S_Confirm__S_Notify</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Notify__S_EndApproved</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="S_EndApproved" name="Заказ отменён">
+      <bpmn:incoming>Flow_S_Notify__S_EndApproved</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_S_Start__S_Receive" sourceRef="S_Start" targetRef="S_Receive"/>
+    <bpmn:sequenceFlow id="Flow_S_Receive__S_Check" sourceRef="S_Receive" targetRef="S_Check"/>
+    <bpmn:sequenceFlow id="Flow_S_Check__S_Decide" sourceRef="S_Check" targetRef="S_Decide"/>
+    <bpmn:sequenceFlow id="Flow_S_Decide__S_Decline" sourceRef="S_Decide" targetRef="S_Decline" name="Нет"/>
+    <bpmn:sequenceFlow id="Flow_S_Decline__S_EndDecline" sourceRef="S_Decline" targetRef="S_EndDecline"/>
+    <bpmn:sequenceFlow id="Flow_S_Decide__S_Cancel" sourceRef="S_Decide" targetRef="S_Cancel" name="Да"/>
+    <bpmn:sequenceFlow id="Flow_S_Cancel__S_RefundRequest" sourceRef="S_Cancel" targetRef="S_RefundRequest"/>
+    <bpmn:sequenceFlow id="Flow_S_RefundRequest__S_RefundConfirm" sourceRef="S_RefundRequest" targetRef="S_RefundConfirm"/>
+    <bpmn:sequenceFlow id="Flow_S_RefundConfirm__S_Confirm" sourceRef="S_RefundConfirm" targetRef="S_Confirm"/>
+    <bpmn:sequenceFlow id="Flow_S_Confirm__S_Notify" sourceRef="S_Confirm" targetRef="S_Notify"/>
+    <bpmn:sequenceFlow id="Flow_S_Notify__S_EndApproved" sourceRef="S_Notify" targetRef="S_EndApproved"/>
+  </bpmn:process>
+  <bpmn:process id="Process_Payment" isExecutable="false" name="Платёжный сервис">
+    <bpmn:startEvent id="P_Start" name="Получен запрос на возврат">
+      <bpmn:messageEventDefinition id="Med_P_Start" messageRef="msgRefundRequest"/>
+      <bpmn:outgoing>Flow_P_Start__P_Receive</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="P_Receive" name="Получить запрос на возврат">
+      <bpmn:incoming>Flow_P_Start__P_Receive</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Receive__P_Check</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="P_Check" name="Проверить платёж">
+      <bpmn:incoming>Flow_P_Receive__P_Check</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Check__P_Refund</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:serviceTask id="P_Refund" name="Выполнить возврат денежных средств">
+      <bpmn:incoming>Flow_P_Check__P_Refund</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Refund__P_Confirm</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="P_Confirm" name="Отправить подтверждение возврата">
+      <bpmn:incoming>Flow_P_Refund__P_Confirm</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Confirm__P_End</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="P_End" name="Возврат выполнен">
+      <bpmn:incoming>Flow_P_Confirm__P_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_P_Start__P_Receive" sourceRef="P_Start" targetRef="P_Receive"/>
+    <bpmn:sequenceFlow id="Flow_P_Receive__P_Check" sourceRef="P_Receive" targetRef="P_Check"/>
+    <bpmn:sequenceFlow id="Flow_P_Check__P_Refund" sourceRef="P_Check" targetRef="P_Refund"/>
+    <bpmn:sequenceFlow id="Flow_P_Refund__P_Confirm" sourceRef="P_Refund" targetRef="P_Confirm"/>
+    <bpmn:sequenceFlow id="Flow_P_Confirm__P_End" sourceRef="P_Confirm" targetRef="P_End"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Main">
+    <bpmndi:BPMNPlane id="BPMNPlane_Main" bpmnElement="Collaboration_OnlineOrderCancellation">
+      <bpmndi:BPMNShape id="Shape_Participant_Customer" bpmnElement="Participant_Customer" isHorizontal="true">
+        <dc:Bounds x="70" y="72" width="1760" height="210"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Participant_Store" bpmnElement="Participant_Store" isHorizontal="true">
+        <dc:Bounds x="70" y="302" width="1760" height="310"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Participant_Payment" bpmnElement="Participant_Payment" isHorizontal="true">
+        <dc:Bounds x="70" y="680" width="1760" height="200"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_C_Start" bpmnElement="C_Start">
+        <dc:Bounds x="170" y="135" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_C_Send" bpmnElement="C_Send">
+        <dc:Bounds x="270" y="118" width="155" height="68"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_C_Wait" bpmnElement="C_Wait">
+        <dc:Bounds x="512" y="126" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_C_Decline" bpmnElement="C_Decline">
+        <dc:Bounds x="840" y="135" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_C_EndDecline" bpmnElement="C_EndDecline">
+        <dc:Bounds x="988" y="135" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_C_Approved" bpmnElement="C_Approved">
+        <dc:Bounds x="1492" y="135" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_C_EndApproved" bpmnElement="C_EndApproved">
+        <dc:Bounds x="1676" y="135" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_Start" bpmnElement="S_Start">
+        <dc:Bounds x="135" y="428" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_Receive" bpmnElement="S_Receive">
+        <dc:Bounds x="220" y="408" width="145" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_Check" bpmnElement="S_Check">
+        <dc:Bounds x="400" y="408" width="145" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_Decide" bpmnElement="S_Decide">
+        <dc:Bounds x="596" y="418" width="54" height="54"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_Decline" bpmnElement="S_Decline">
+        <dc:Bounds x="755" y="325" width="170" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_EndDecline" bpmnElement="S_EndDecline">
+        <dc:Bounds x="1030" y="346" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_Cancel" bpmnElement="S_Cancel">
+        <dc:Bounds x="731" y="492" width="145" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_RefundRequest" bpmnElement="S_RefundRequest">
+        <dc:Bounds x="905" y="492" width="155" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_RefundConfirm" bpmnElement="S_RefundConfirm">
+        <dc:Bounds x="1101" y="512" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_Confirm" bpmnElement="S_Confirm">
+        <dc:Bounds x="1174" y="492" width="150" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_Notify" bpmnElement="S_Notify">
+        <dc:Bounds x="1350" y="492" width="164" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S_EndApproved" bpmnElement="S_EndApproved">
+        <dc:Bounds x="1585" y="513" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_P_Start" bpmnElement="P_Start">
+        <dc:Bounds x="555" y="755" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_P_Receive" bpmnElement="P_Receive">
+        <dc:Bounds x="645" y="733" width="145" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_P_Check" bpmnElement="P_Check">
+        <dc:Bounds x="816" y="733" width="145" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_P_Refund" bpmnElement="P_Refund">
+        <dc:Bounds x="991" y="733" width="161" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_P_Confirm" bpmnElement="P_Confirm">
+        <dc:Bounds x="1192" y="733" width="168" height="75"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_P_End" bpmnElement="P_End">
+        <dc:Bounds x="1470" y="754" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_C_Start__C_Send" bpmnElement="Flow_C_Start__C_Send">
+        <di:waypoint x="206.0" y="153.0"/>
+        <di:waypoint x="270.0" y="153.0"/>
+        <di:waypoint x="270.0" y="152.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_C_Send__C_Wait" bpmnElement="Flow_C_Send__C_Wait">
+        <di:waypoint x="425.0" y="152.0"/>
+        <di:waypoint x="512.0" y="152.0"/>
+        <di:waypoint x="512.0" y="151.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_C_Wait__C_Decline" bpmnElement="Flow_C_Wait__C_Decline">
+        <di:waypoint x="562" y="151"/>
+        <di:waypoint x="700" y="151"/>
+        <di:waypoint x="840" y="153"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_C_Wait__C_Approved" bpmnElement="Flow_C_Wait__C_Approved">
+        <di:waypoint x="537" y="176"/>
+        <di:waypoint x="537" y="232"/>
+        <di:waypoint x="1510" y="232"/>
+        <di:waypoint x="1510" y="171"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_C_Decline__C_EndDecline" bpmnElement="Flow_C_Decline__C_EndDecline">
+        <di:waypoint x="876.0" y="153.0"/>
+        <di:waypoint x="988.0" y="153.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_C_Approved__C_EndApproved" bpmnElement="Flow_C_Approved__C_EndApproved">
+        <di:waypoint x="1528.0" y="153.0"/>
+        <di:waypoint x="1676" y="153"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_Start__S_Receive" bpmnElement="Flow_S_Start__S_Receive">
+        <di:waypoint x="171.0" y="446.0"/>
+        <di:waypoint x="220.0" y="446.0"/>
+        <di:waypoint x="220.0" y="445.5"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_Receive__S_Check" bpmnElement="Flow_S_Receive__S_Check">
+        <di:waypoint x="365.0" y="445.5"/>
+        <di:waypoint x="400.0" y="445.5"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_Check__S_Decide" bpmnElement="Flow_S_Check__S_Decide">
+        <di:waypoint x="545.0" y="445.5"/>
+        <di:waypoint x="596.0" y="445.5"/>
+        <di:waypoint x="596.0" y="445.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_Decide__S_Decline" bpmnElement="Flow_S_Decide__S_Decline">
+        <di:waypoint x="623" y="418"/>
+        <di:waypoint x="623" y="364"/>
+        <di:waypoint x="755" y="364"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_Decline__S_EndDecline" bpmnElement="Flow_S_Decline__S_EndDecline">
+        <di:waypoint x="925.0" y="362.5"/>
+        <di:waypoint x="1030.0" y="362.5"/>
+        <di:waypoint x="1030.0" y="364.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_Decide__S_Cancel" bpmnElement="Flow_S_Decide__S_Cancel">
+        <di:waypoint x="623" y="472"/>
+        <di:waypoint x="623" y="529"/>
+        <di:waypoint x="731" y="529"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_Cancel__S_RefundRequest" bpmnElement="Flow_S_Cancel__S_RefundRequest">
+        <di:waypoint x="876.0" y="529.5"/>
+        <di:waypoint x="905.0" y="529.5"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_RefundRequest__S_RefundConfirm" bpmnElement="Flow_S_RefundRequest__S_RefundConfirm">
+        <di:waypoint x="1060.0" y="529.5"/>
+        <di:waypoint x="1101.0" y="529.5"/>
+        <di:waypoint x="1101.0" y="530.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_RefundConfirm__S_Confirm" bpmnElement="Flow_S_RefundConfirm__S_Confirm">
+        <di:waypoint x="1137.0" y="530.0"/>
+        <di:waypoint x="1174.0" y="530.0"/>
+        <di:waypoint x="1174.0" y="529.5"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_Confirm__S_Notify" bpmnElement="Flow_S_Confirm__S_Notify">
+        <di:waypoint x="1324.0" y="529.5"/>
+        <di:waypoint x="1350.0" y="529.5"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_S_Notify__S_EndApproved" bpmnElement="Flow_S_Notify__S_EndApproved">
+        <di:waypoint x="1514.0" y="529.5"/>
+        <di:waypoint x="1585.0" y="529.5"/>
+        <di:waypoint x="1585.0" y="531.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_P_Start__P_Receive" bpmnElement="Flow_P_Start__P_Receive">
+        <di:waypoint x="591.0" y="773.0"/>
+        <di:waypoint x="645.0" y="773.0"/>
+        <di:waypoint x="645.0" y="770.5"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_P_Receive__P_Check" bpmnElement="Flow_P_Receive__P_Check">
+        <di:waypoint x="790.0" y="770.5"/>
+        <di:waypoint x="816.0" y="770.5"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_P_Check__P_Refund" bpmnElement="Flow_P_Check__P_Refund">
+        <di:waypoint x="961.0" y="770.5"/>
+        <di:waypoint x="991.0" y="770.5"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_P_Refund__P_Confirm" bpmnElement="Flow_P_Refund__P_Confirm">
+        <di:waypoint x="1152.0" y="770.5"/>
+        <di:waypoint x="1192.0" y="770.5"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_P_Confirm__P_End" bpmnElement="Flow_P_Confirm__P_End">
+        <di:waypoint x="1360.0" y="770.5"/>
+        <di:waypoint x="1470.0" y="770.5"/>
+        <di:waypoint x="1470.0" y="772.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Msg_Cancel" bpmnElement="Msg_Cancel">
+        <di:waypoint x="347.5" y="186.0"/>
+        <di:waypoint x="347.5" y="301"/>
+        <di:waypoint x="153" y="301"/>
+        <di:waypoint x="153" y="428"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Msg_Decline" bpmnElement="Msg_Decline">
+        <di:waypoint x="840" y="325"/>
+        <di:waypoint x="840" y="210"/>
+        <di:waypoint x="858" y="210"/>
+        <di:waypoint x="858" y="171"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Msg_RefundRequest" bpmnElement="Msg_RefundRequest">
+        <di:waypoint x="984" y="567"/>
+        <di:waypoint x="984" y="645"/>
+        <di:waypoint x="573" y="645"/>
+        <di:waypoint x="573" y="755"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Msg_RefundApproved" bpmnElement="Msg_RefundApproved">
+        <di:waypoint x="1276" y="733"/>
+        <di:waypoint x="1276" y="648"/>
+        <di:waypoint x="1119" y="648"/>
+        <di:waypoint x="1119" y="548"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Msg_Approved" bpmnElement="Msg_Approved">
+        <di:waypoint x="1432" y="492"/>
+        <di:waypoint x="1432" y="315"/>
+        <di:waypoint x="1510" y="315"/>
+        <di:waypoint x="1510" y="171"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
