@@ -1,9 +1,3 @@
-# Online Order Cancellation — BPMN 2.0
-
-**Business process modelling · Educational portfolio project · October 2026**
-
-![Original BPMN diagram](docs/order-cancellation-original.png)
-
 ## Project overview
 
 This project models an online-store order cancellation and refund workflow using **BPMN 2.0**. The objective is to make the decision logic and collaboration between participants explicit: the store checks order eligibility, either refuses the request or cancels the order, and coordinates a refund before informing the customer.
@@ -29,7 +23,6 @@ The model focuses on these **two outcomes**. It does not model a separate refund
 
 ## Repository files
 
-- [`docs/order-cancellation-original.png`](docs/order-cancellation-original.png) — **original diagram image** used in the educational project.
 - [`models/online-order-cancellation-reconstructed.bpmn`](models/online-order-cancellation-reconstructed.bpmn) — an **editable BPMN 2.0 XML reconstruction** based on the original image; open it in Camunda Modeler or another BPMN-compatible editor.
 
 > The editable XML is a reconstruction from the image, **not an original exported source file**. Certain connective details were made explicit for importability and should not be confused with a verbatim original export.
