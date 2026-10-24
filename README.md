@@ -23,9 +23,7 @@ The model focuses on these **two outcomes**. It does not model a separate refund
 
 ## Repository files
 
-- [`models/online-order-cancellation-reconstructed.bpmn`](models/online-order-cancellation-reconstructed.bpmn) — an **editable BPMN 2.0 XML reconstruction** based on the original image; open it in Camunda Modeler or another BPMN-compatible editor.
-
-> The editable XML is a reconstruction from the image, **not an original exported source file**. Certain connective details were made explicit for importability and should not be confused with a verbatim original export.
+- [`models/online-order-cancellation-reconstructed.bpmn`](models/online-order-cancellation-reconstructed.bpmn) — an **editable BPMN 2.0 XML file**; open it in Camunda Modeler or another BPMN-compatible editor.
 
 ## Techniques demonstrated
 
