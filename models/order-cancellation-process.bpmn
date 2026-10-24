@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_OrderCancellation" targetNamespace="https://github.com/Loliquidatorqq/online-order-cancellation-bpmn">
+  <bpmn:collaboration id="Collaboration_OrderCancellation">
+    <bpmn:participant id="Participant_Customer" name="Customer" processRef="Process_Customer"/>
+    <bpmn:participant id="Participant_Store" name="Online store" processRef="Process_Store"/>
+    <bpmn:participant id="Participant_Payment" name="Payment service" processRef="Process_Payment"/>
+    <bpmn:messageFlow id="Message_CancelRequest" sourceRef="Customer_Request" targetRef="Store_Start"/>
+    <bpmn:messageFlow id="Message_Refusal" sourceRef="Store_Refuse" targetRef="Customer_Refusal"/>
+    <bpmn:messageFlow id="Message_RefundRequest" sourceRef="Store_AskRefund" targetRef="Payment_Start"/>
+    <bpmn:messageFlow id="Message_RefundConfirmation" sourceRef="Payment_Confirm" targetRef="Store_RefundConfirmation"/>
+    <bpmn:messageFlow id="Message_Success" sourceRef="Store_Notify" targetRef="Customer_Success"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Customer" isExecutable="false">
+    <bpmn:startEvent id="Customer_Start"/>
+    <bpmn:task id="Customer_Request" name="Request cancellation"/>
+    <bpmn:exclusiveGateway id="Customer_Wait" name="Receive outcome"/>
+    <bpmn:task id="Customer_Refusal" name="Receive refusal"/>
+    <bpmn:task id="Customer_Success" name="Receive cancellation and refund confirmation"/>
+    <bpmn:endEvent id="Customer_EndRefused"/>
+    <bpmn:endEvent id="Customer_EndSuccess"/>
+    <bpmn:sequenceFlow id="CF1" sourceRef="Customer_Start" targetRef="Customer_Request"/>
+    <bpmn:sequenceFlow id="CF2" sourceRef="Customer_Request" targetRef="Customer_Wait"/>
+    <bpmn:sequenceFlow id="CF3" sourceRef="Customer_Wait" targetRef="Customer_Refusal"/>
+    <bpmn:sequenceFlow id="CF4" sourceRef="Customer_Wait" targetRef="Customer_Success"/>
+    <bpmn:sequenceFlow id="CF5" sourceRef="Customer_Refusal" targetRef="Customer_EndRefused"/>
+    <bpmn:sequenceFlow id="CF6" sourceRef="Customer_Success" targetRef="Customer_EndSuccess"/>
+  </bpmn:process>
+  <bpmn:process id="Process_Store" isExecutable="false">
+    <bpmn:startEvent id="Store_Start" name="Cancellation request received"/>
+    <bpmn:task id="Store_Check" name="Check cancellation eligibility"/>
+    <bpmn:exclusiveGateway id="Store_Eligible" name="Cancellation possible?"/>
+    <bpmn:task id="Store_Refuse" name="Notify refusal"/>
+    <bpmn:task id="Store_Cancel" name="Cancel order"/>
+    <bpmn:sendTask id="Store_AskRefund" name="Request refund"/>
+    <bpmn:receiveTask id="Store_RefundConfirmation" name="Receive refund confirmation"/>
+    <bpmn:task id="Store_Notify" name="Notify successful cancellation"/>
+    <bpmn:endEvent id="Store_EndRefused"/>
+    <bpmn:endEvent id="Store_EndSuccess"/>
+    <bpmn:sequenceFlow id="SF1" sourceRef="Store_Start" targetRef="Store_Check"/>
+    <bpmn:sequenceFlow id="SF2" sourceRef="Store_Check" targetRef="Store_Eligible"/>
+    <bpmn:sequenceFlow id="SF3" name="No" sourceRef="Store_Eligible" targetRef="Store_Refuse"/>
+    <bpmn:sequenceFlow id="SF4" sourceRef="Store_Refuse" targetRef="Store_EndRefused"/>
+    <bpmn:sequenceFlow id="SF5" name="Yes" sourceRef="Store_Eligible" targetRef="Store_Cancel"/>
+    <bpmn:sequenceFlow id="SF6" sourceRef="Store_Cancel" targetRef="Store_AskRefund"/>
+    <bpmn:sequenceFlow id="SF7" sourceRef="Store_AskRefund" targetRef="Store_RefundConfirmation"/>
+    <bpmn:sequenceFlow id="SF8" sourceRef="Store_RefundConfirmation" targetRef="Store_Notify"/>
+    <bpmn:sequenceFlow id="SF9" sourceRef="Store_Notify" targetRef="Store_EndSuccess"/>
+  </bpmn:process>
+  <bpmn:process id="Process_Payment" isExecutable="false">
+    <bpmn:startEvent id="Payment_Start" name="Refund requested"/>
+    <bpmn:task id="Payment_Check" name="Verify payment"/>
+    <bpmn:task id="Payment_Refund" name="Issue refund"/>
+    <bpmn:sendTask id="Payment_Confirm" name="Send refund confirmation"/>
+    <bpmn:endEvent id="Payment_End"/>
+    <bpmn:sequenceFlow id="PF1" sourceRef="Payment_Start" targetRef="Payment_Check"/>
+    <bpmn:sequenceFlow id="PF2" sourceRef="Payment_Check" targetRef="Payment_Refund"/>
+    <bpmn:sequenceFlow id="PF3" sourceRef="Payment_Refund" targetRef="Payment_Confirm"/>
+    <bpmn:sequenceFlow id="PF4" sourceRef="Payment_Confirm" targetRef="Payment_End"/>
+  </bpmn:process>
+</bpmn:definitions>
