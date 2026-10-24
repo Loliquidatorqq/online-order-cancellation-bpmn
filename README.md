@@ -41,8 +41,8 @@ The model focuses on these **two outcomes**. It does not model a separate refund
 
 ## Repository files
 
-- The original educational diagram is included in the downloadable project ZIP; the GitHub repository currently contains an editable reconstruction and process summary.
-- [`models/online-order-cancellation-reconstructed.bpmn`](models/online-order-cancellation-reconstructed.bpmn) — an **editable BPMN 2.0 XML reconstruction** based on the original image; open it in Camunda Modeler or another BPMN-compatible editor.
+- The original educational diagram is available in the downloadable project ZIP; the editable reconstruction and process summary are published here.
+- [`models/order-cancellation-process.bpmn`](models/order-cancellation-process.bpmn) — an **editable BPMN 2.0 XML reconstruction** based on the original image; open it in a BPMN-compatible editor. This simplified XML focuses on process semantics and does not contain graphical BPMN-DI coordinates.
 
 > The editable XML is a reconstruction from the image, **not an original exported source file**. Certain connective details were made explicit for importability and should not be confused with a verbatim original export.
 
